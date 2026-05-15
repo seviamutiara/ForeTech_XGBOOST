@@ -1,65 +1,123 @@
-import pandas as pd
-import xgboost as xgb
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-import joblib
+# =============================================================
+# File : train_model.py  (Synced with app.py v3)
+# Fungsi: Melatih ulang model XGBoost menggunakan dataset bersih.
+#
+# Alur Pelatihan (2 Tahap):
+# 1. EVALUATION: Dilatih pada 80% data (tanpa bobot tambahan) 
+#    untuk menguji akurasi model pada data baru (20%).
+# 2. PRODUCTION: Dilatih pada 100% data menggunakan 'Weighted Training'
+#    agar model siap dipakai untuk memprediksi bulan depan.
+# =============================================================
+
 import os
 import numpy as np
+import pandas as pd
+import joblib
+from xgboost import XGBRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
-def train_xgboost():
-    data_path = r'D:\ForeTech_XGBOOST\data_cleaned\data_final_cleaned.csv'
-    if not os.path.exists(data_path):
+# ──────────────────────────────────────────────────────────────
+# KONSTANTA FITUR (Harus sinkron dengan pipeline app.py)
+# ──────────────────────────────────────────────────────────────
+BASE_COLS = [
+    'New_Employee', 'Intern_Count', 'Resigned_Employee', 'Broken_Device',
+    'Refresh_Cycle', 'Device_Out', 'Spare_Pool', 'Device_In',
+]
+
+FEATURES = (
+    ['Month', 'Quarter', 'Avg_Recruitment_3Mos', 'Avg_Broken_3Mos',
+     'Stock_Momentum', 'Urgency_Ratio', 'Gap_To_Safety']
+    + [f'Lag_{x}' for x in BASE_COLS]
+)
+
+def train_engine():
+    print("=" * 60)
+    print(" PRODUCTION TRAINING — Synced with app.py v3")
+    print("=" * 60)
+
+    file_path = "data_cleaned/data_final_cleaned.csv"
+
+    if not os.path.exists(file_path):
+        print("❌ ERROR: data_final_cleaned.csv tidak ditemukan.")
+        print("   Jalankan preprocessing.py terlebih dahulu.")
         return
 
-    df = pd.read_csv(data_path)
+    # ── Load Dataset ────────────────────────────────────────
+    df = pd.read_csv(file_path)
+    print(f"✔ Dataset dimuat: {len(df)} baris")
 
-    df['Next_Month_NewEmp'] = df['X1_NewEmployee'].shift(-1).fillna(df['X1_NewEmployee'].mean())
-    df['Next_Month_Intern'] = df['X2_InternCount'].shift(-1).fillna(0)
-    df['Quarter'] = ((df['Bulan'] - 1) // 3) + 1
+    # ── Validasi Integritas Kolom ───────────────────────────
+    missing_cols = [col for col in FEATURES if col not in df.columns]
+    if missing_cols:
+        print(f"❌ ERROR: Kolom hilang: {missing_cols}")
+        return
 
-    df = df.iloc[3:-1].reset_index(drop=True)
+    X = df[FEATURES]
+    y = df['Device_In']
 
-    features = [
-        'Bulan', 'Quarter', 'X1_NewEmployee', 'X2_InternCount', 
-        'X4_DeviceBroken', 'X5_RefreshCycle', 'X7_SparePool', 
-        'Lag_Y_DeviceIn', 'Rolling_Avg_Hiring', 
-        'Next_Month_NewEmp', 'Next_Month_Intern'
-    ]
-    target = 'Y_DeviceIn'
+    # ── Pembagian Data Berurutan (Sequential Split 80:20) ───
+    split = int(len(df) * 0.8)
 
-    X = df[features]
-    y = df[target]
+    X_train, X_test = X.iloc[:split], X.iloc[split:]
+    y_train, y_test = y.iloc[:split], y.iloc[split:]
 
-    train_size = int(len(df) * 0.8)
-    X_train, X_test = X.iloc[:train_size], X.iloc[train_size:]
-    y_train, y_test = y.iloc[:train_size], y.iloc[train_size:]
+    print(f"   Data Latih (80%) : {len(X_train)} baris")
+    print(f"   Data Uji  (20%) : {len(X_test)} baris")
 
-    model = xgb.XGBRegressor(
-        n_estimators=1000,
-        learning_rate=0.01,
-        max_depth=4,
-        subsample=0.8,
-        colsample_bytree=0.9,
-        random_state=42,
-        objective='reg:squarederror'
+    # ────────────────────────────────────────────────────────
+    # TAHAP 1: EVALUATION MODEL
+    # Menghasilkan metrik untuk justifikasi kelayakan sistem.
+    # ────────────────────────────────────────────────────────
+    print("\n[TAHAP 1] Melatih Evaluation Model...")
+
+    eval_model = XGBRegressor(
+        n_estimators=500,
+        learning_rate=0.05,
+        max_depth=5,
+        random_state=42
     )
-    
-    model.fit(X_train, y_train)
+    eval_model.fit(X_train, y_train)
 
-    predictions = model.predict(X_test)
-    predictions_rounded = np.maximum(0, np.round(predictions)).astype(int)
-    
-    mae = mean_absolute_error(y_test, predictions_rounded)
-    rmse = np.sqrt(mean_squared_error(y_test, predictions_rounded))
-    r2 = r2_score(y_test, predictions_rounded)
+    # Prediksi dibulatkan ke Integer (karena objek fisik/laptop)
+    pred_eval = np.maximum(0, np.round(eval_model.predict(X_test)))
 
-    print(f"MAE: {mae:.2f}")
-    print(f"RMSE: {rmse:.2f}")
-    print(f"R-Squared: {r2:.4f}")
+    mae  = mean_absolute_error(y_test, pred_eval)
+    rmse = np.sqrt(mean_squared_error(y_test, pred_eval))
+    r2   = r2_score(y_test, pred_eval)
 
-    model_dir = r'D:\ForeTech_XGBOOST\models'
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
-    joblib.dump(model, os.path.join(model_dir, 'xgboost_model.pkl'))
+    print("\n  Evaluation Result (data uji 20%):")
+    print(f"  MAE  : {mae:.2f}")
+    print(f"  RMSE : {rmse:.2f}")
+    print(f"  R²   : {r2:.4f}")
+
+    # ────────────────────────────────────────────────────────
+    # TAHAP 2: PRODUCTION MODEL
+    # Dilatih pada seluruh data (100%) menggunakan Weighted Training.
+    # 
+    # Logika Bisnis (Proporsional Bobot):
+    # Model memberikan bobot lebih berat pada bulan yang memiliki 
+    # volume pengadaan tinggi (misal: saat musim rekrutmen magang).
+    # Tujuannya agar AI lebih sensitif mencegah risiko defisit stok.
+    # ────────────────────────────────────────────────────────
+    print("\n[TAHAP 2] Melatih Production Model (Weighted Training)...")
+
+    # Kalkulasi bobot proporsional (y / mean)
+    weights = (y / y.mean()).values
+
+    final_model = XGBRegressor(
+        n_estimators=500,
+        learning_rate=0.05,
+        max_depth=5,
+        random_state=42
+    )
+    final_model.fit(X, y, sample_weight=weights)
+
+    os.makedirs('models', exist_ok=True)
+    model_path = 'models/xgboost_model.pkl'
+    joblib.dump(final_model, model_path)
+
+    print(f"✔ Model produksi siap digunakan di: {model_path}")
+    print("=" * 60)
 
 if __name__ == "__main__":
-    train_xgboost()
+    train_engine()

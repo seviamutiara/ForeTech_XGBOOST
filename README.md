@@ -1,26 +1,37 @@
-# ForeTech: IT Asset Forecasting System
+# ForeTech - IT Asset & Budget Intelligence System
 
-## Deskripsi Proyek
-Proyek ini adalah implementasi Machine Learning untuk memprediksi kebutuhan pengadaan aset TI (Laptop) menggunakan algoritma **XGBoost Regressor**. Sistem ini dirancang untuk meminimalkan risiko surplus dan defisit stok perangkat pada operasional perusahaan digital.
+[![Python Version](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/)
+[![Algorithm](https://img.shields.io/badge/Algorithm-XGBoost-orange.svg)](https://xgboost.readthedocs.io/)
+[![Framework](https://img.shields.io/badge/Framework-Flask-lightgrey.svg)](https://flask.palletsprojects.com/)
 
-## Tahapan Hasil dan Pembahasan (Bab IV)
-1. **Pengumpulan Data**: Mengolah data simulasi historis periode 2019–2024.
-2. **Preprocessing Data**: Penanganan nilai hilang, pemeriksaan outlier, dan rekayasa fitur (lag features).
-3. **Pengolahan Data**: Pelatihan model XGBoost dengan pembagian dataset 80% training dan 20% testing.
-4. **Integrasi ke Aplikasi**: Pengembangan dashboard berbasis web untuk otomatisasi alur kerja prediksi.
-5. **Hasil Evaluasi**: Pengujian akurasi menggunakan metrik MAE, RMSE, dan R².
+**ForeTech** adalah sistem pendukung keputusan berbasis kecerdasan buatan (*AI-driven Decision Support System*) yang dirancang untuk memprediksi kuantitas pengadaan aset TI (khususnya laptop). Sistem ini bertujuan mengoptimalkan perencanaan anggaran dengan meminimalkan risiko surplus stok maupun defisit perangkat melalui pemodelan prediktif yang akurat.
 
-## Variabel Input (Prediktor)
-* **X1 (NewEmployee)**: Jumlah karyawan baru.
-* **X2 (InternCount)**: Jumlah peserta magang.
-* **X3 (ResignCount)**: Jumlah karyawan keluar.
-* **X4 (DeviceBroken)**: Jumlah perangkat rusak.
-* **X5 (RefreshCycle)**: Perangkat dalam siklus penggantian rutin.
-* **X6 (DeviceOut)**: Perangkat keluar dari pool utama.
-* **X7 (SparePool)**: Stok cadangan di gudang.
+## 🚀 Fitur Utama
+- **Autonomous Cleansing:** Pipeline pembersihan data otomatis (Interpolasi, Median, & ffill) untuk menangani *missing values*.
+- **Feature Engineering Engine:** Pembentukan fitur prediktor canggih seperti *Urgency Ratio*, *Stock Momentum*, *Gap to Safety*, dan *Lagging Transformation*.
+- **Production-Grade Training:** Implementasi *Weighted Training* pada algoritma XGBoost untuk meningkatkan sensitivitas model terhadap lonjakan kebutuhan (musim rekrutmen/magang).
+- **Executive Dashboard:** Visualisasi tren *Estimation Horizon* dan analisis faktor penentu (*Feature Importance*).
+- **Justification Reporter:** Ekspor laporan otomatis (PDF) sebagai dokumen pendukung pengambilan keputusan anggaran.
 
-## Teknologi
-* Python 3.11.9
-* XGBoost & Scikit-learn
-* Pandas & NumPy
-* Flask Web Framework
+## 📊 Hasil Evaluasi Model
+Berdasarkan pengujian komparasi terhadap model *baseline* (Linear Regression), algoritma **XGBoost** menunjukkan keunggulan signifikan:
+
+| Metrik Evaluasi | Hasil (XGBoost) | Peningkatan Efisiensi |
+| :--- | :--- | :--- |
+| **Mean Absolute Error (MAE)** | **8.21 Units** | Penurunan Error 35,81% |
+| **Root Mean Squared Error (RMSE)** | **10.17 Units** | Penurunan Error 41,48% |
+| **R-Squared (R²)** | **0.7107** | Akurasi meningkat 360% |
+
+## 📁 Struktur Proyek
+Proyek ini menggunakan *Source Layout* untuk memisahkan logika inti AI dengan *interface* aplikasi:
+```text
+ForeTech_XGBOOST/
+├── src/                    # Logika Inti Kecerdasan Buatan
+│   ├── preprocessing.py    # Pipeline pembersihan data otomatis
+│   ├── train_model.py      # Script pelatihan model produksi
+│   └── compare_model.py    # Script pengujian komparatif algoritma
+├── data_raw/               # Dataset historis mentah (2019-2024)
+├── data_cleaned/           # Dataset hasil transformasi preprocessing
+├── models/                 # Penyimpanan biner model (.pkl)
+├── static/ & templates/    # Aset antarmuka web (Flask UI)
+└── app.py                  # Mesin orkestrasi sistem utama

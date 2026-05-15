@@ -1,58 +1,127 @@
+# =============================================================
+# File : preprocessing.py
+# Fungsi: Pipeline Autonomous Cleansing & Feature Engineering.
+# Deskripsi: Skrip mandiri untuk membersihkan data mentah, menangani 
+#            missing values, dan membentuk fitur prediktor canggih 
+#            (lagging, rasio) sebelum dikonsumsi oleh XGBoost.
+# =============================================================
+
 import pandas as pd
 import numpy as np
 import os
 
-def preprocess_data():
-    print("--- Memulai Proses Preprocessing Data ForeTech (Final Check) ---")
-    
-    # Path folder
-    base_path = r'D:\ForeTech_XGBOOST'
-    input_path = os.path.join(base_path, 'data_raw', 'foretech_dataset_raw.csv')
-    output_dir = os.path.join(base_path, 'data_cleaned')
-    output_path = os.path.join(output_dir, 'data_final_cleaned.csv')
+# ──────────────────────────────────────────────────────────────
+# KONSTANTA FITUR
+# ──────────────────────────────────────────────────────────────
+BASE_COLS = [
+    'New_Employee', 'Intern_Count', 'Resigned_Employee', 'Broken_Device',
+    'Refresh_Cycle', 'Device_Out', 'Spare_Pool', 'Device_In',
+]
 
-    # 1. Load Data
-    if not os.path.exists(input_path):
-        print(f"ERROR: File sumber tidak ditemukan di: {input_path}")
+FEATURES = (
+    ['Month', 'Quarter', 'Avg_Recruitment_3Mos', 'Avg_Broken_3Mos',
+     'Stock_Momentum', 'Urgency_Ratio', 'Gap_To_Safety']
+    + [f'Lag_{x}' for x in BASE_COLS]
+)
+
+REQUIRED_INPUT_COLS = [
+    'Year', 'Month', 'New_Employee', 'Intern_Count', 'Resigned_Employee',
+    'Broken_Device', 'Refresh_Cycle', 'Device_Out', 'Spare_Pool', 'Device_In',
+]
+
+
+def clean_dataset(input_path: str = 'data_raw/foretech_dataset_raw.xlsx'):
+    """
+    Menjalankan pipeline preprocessing data secara otomatis.
+    
+    Tahapan Operasional:
+      1. Validasi integritas kolom input.
+      2. Imputasi nilai hilang (interpolasi, median, ffill).
+      3. Rekayasa Fitur Teknis (Lagging, Rasio Kegawatan, Momentum).
+      4. Pemotongan baris awal (akibat perhitungan rolling window).
+      5. Ekspor dataset siap latih.
+    """
+    print("=" * 60)
+    print(" PREPROCESSING (AUTONOMOUS CLEANSING ENGINE)")
+    print("=" * 60)
+
+    # ── Load Dataset Mentah ─────────────────────────────────
+    if input_path.lower().endswith(('.xlsx', '.xls')):
+        df = pd.read_excel(input_path)
+    else:
+        df = pd.read_csv(input_path, encoding='utf-8-sig')
+
+    print(f"✔ Dataset dimuat: {len(df)} baris, {len(df.columns)} kolom")
+
+    # ── Validasi Integritas Data ─────────────────────────────
+    missing_cols = [c for c in REQUIRED_INPUT_COLS if c not in df.columns]
+    if missing_cols:
+        print(f"\n❌ Upload gagal — {len(missing_cols)} kolom tidak ditemukan:")
+        print(f"   {missing_cols}")
+        print("   Gunakan template resmi ForeTech (.xlsx).")
         return
-    df = pd.read_csv(input_path)
-    
-    # 2. Missing Values 
-    np.random.seed(42)
-    df.loc[10:12, 'X1_NewEmployee'] = np.nan
-    df.loc[25, 'X4_DeviceBroken'] = np.nan
-    
-    # 3. Handling Missing Values
-    # Lakukan Interpolasi lalu bulatkan ke angka terdekat
-    df['X1_NewEmployee'] = df['X1_NewEmployee'].interpolate(method='linear')
-    df['X4_DeviceBroken'] = df['X4_DeviceBroken'].fillna(df['X4_DeviceBroken'].median())
-    
-    # 4. Feature Engineering
-    df['Lag_Y_DeviceIn'] = df['Y_DeviceIn'].shift(1).fillna(0)
-    df['Rolling_Avg_Hiring'] = df['X1_NewEmployee'].rolling(window=3).mean().fillna(df['X1_NewEmployee'])
 
-    # Mengubah semua kolom angka menjadi Integer (Bilangan Bulat)
-    cols_to_fix = [
-        'X1_NewEmployee', 'X2_InternCount', 'X3_ResignCount', 
-        'X4_DeviceBroken', 'X5_RefreshCycle', 'X6_DeviceOut', 
-        'X7_SparePool', 'Y_DeviceIn', 'TotalLaptopActive',
-        'Lag_Y_DeviceIn', 'Rolling_Avg_Hiring'
-    ]
-    
-    for col in cols_to_fix:
-        # Rounding dulu baru diubah ke int agar 12.7 jadi 13, bukan 12
-        df[col] = df[col].round(0).astype(int)
+    if len(df) < 10:
+        print(f"\n❌ Dataset terlalu kecil ({len(df)} baris).")
+        print("   Dibutuhkan minimal 10 data bulanan berurutan.")
+        return
 
-    # 5. Simpan Hasil
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    # ── Preprocessing (Penanganan Nilai Hilang) ──────────────
+    # - Rekrutmen: Interpolasi untuk menjaga tren kesinambungan.
+    # - Kerusakan: Median untuk menghindari anomali data (outlier).
+    # - Stok: Forward fill (ffill) untuk meneruskan sisa stok gudang.
     
-    df.to_csv(output_path, index=False)
+    df['New_Employee']  = df['New_Employee'].interpolate().fillna(0)
+    df['Broken_Device'] = df['Broken_Device'].fillna(df['Broken_Device'].median())
+    for c in ['Intern_Count', 'Resigned_Employee',
+              'Refresh_Cycle', 'Device_Out', 'Device_In']:
+        df[c] = df[c].fillna(0)
+    df['Spare_Pool'] = df['Spare_Pool'].ffill().fillna(20).clip(lower=0)
+
+    print("✔ Imputasi selesai (interpolasi, median, ffill).")
     
-    print(f"SUKSES! Data sudah dibersihkan dan semua angka sudah dibulatkan (Integer).")
-    print(f"File tersimpan di: {output_path}")
-    print("\nContoh Baris 10-13 (Cek apakah sudah bulat):")
-    print(df.loc[10:13, ['X1_NewEmployee', 'Rolling_Avg_Hiring']])
+    # Catatan: Format angka dipertahankan sebagai float untuk menjaga presisi 
+    # matematis saat perhitungan rasio dan rata-rata di tahap selanjutnya.
+
+    # ── Feature Engineering (Rekayasa Fitur Pintar) ──────────
+    # Membentuk variabel "ingatan" jangka pendek untuk XGBoost
+    
+    # 1. Fitur Lag (Bulan Sebelumnya)
+    for col in BASE_COLS:
+        df[f'Lag_{col}'] = df[col].shift(1)
+
+    # 2. Fitur Tren Kebutuhan
+    df['Avg_Recruitment_3Mos'] = df['New_Employee'].shift(1).rolling(3).mean()
+    df['Avg_Broken_3Mos']      = df['Broken_Device'].shift(1).rolling(3).mean()
+    
+    # 3. Fitur Peringatan Dini (Early Warning)
+    df['Stock_Momentum']       = df['Spare_Pool'].shift(1) - df['Spare_Pool'].shift(2)
+    df['Urgency_Ratio'] = (
+        (df['New_Employee'].shift(1) + df['Intern_Count'].shift(1)
+         + df['Broken_Device'].shift(1))
+        / df['Spare_Pool'].shift(1).clip(lower=1)
+    )
+    df['Gap_To_Safety'] = 20 - df['Spare_Pool'].shift(1)
+    df['Quarter']       = ((df['Month'] - 1) // 3) + 1
+
+    # Membuang baris awal yang kosong akibat proses shift() dan rolling()
+    df = df.dropna().reset_index(drop=True)
+
+    print(f"✔ Feature engineering selesai. Baris valid yang tersisa: {len(df)}")
+
+    if len(df) < 6:
+        print("\n❌ Setelah preprocessing, baris yang tersisa terlalu sedikit.")
+        print("   Sediakan dataset dengan rentang waktu yang lebih panjang.")
+        return
+
+    # ── Ekspor Data Bersih ───────────────────────────────────
+    os.makedirs('data_cleaned', exist_ok=True)
+    df.to_csv('data_cleaned/data_final_cleaned.csv', index=False)
+
+    print("✔ data_final_cleaned.csv berhasil disimpan.")
+    print(f"  Kolom siap latih: {list(df.columns)}")
+    print("=" * 60)
+
 
 if __name__ == "__main__":
-    preprocess_data()
+    clean_dataset()
