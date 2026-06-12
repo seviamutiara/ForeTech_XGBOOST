@@ -1,49 +1,46 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=20.0">
-    <title>ForeTech - Asset & Budget Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=36.0">
+    <title>ForeTech - Sistem Analitik Pengadaan</title>
 </head>
 <body>
     <div class="layout-container">
+        <!-- SIDEBAR -->
         <aside class="sidebar">
             <div class="brand">
                 <h1>FORETECH</h1>
-                <p>FROM DATA TO DECISION</p>
+                <p>From Data to Decision</p>
             </div>
             <nav class="nav-menu">
-                <p class="nav-title">MAIN NAVIGATION</p>
+                <p class="nav-title">Menu Navigasi</p>
                 <a href="/" class="nav-link {{ 'active' if active_tab == 'dashboard' else '' }}">
-                    <span class="nav-icon">◱</span> Prediction Dashboard
+                    <span class="nav-icon">◱</span> PREDICTION DASHBOARD
                 </a>
                 <a href="/model" class="nav-link {{ 'active' if active_tab == 'model' else '' }}">
-                    <span class="nav-icon">⌬</span> Model Generator
+                    <span class="nav-icon">⌬</span> MODEL GENERATOR
                 </a>
                 <a href="/export_report" target="_blank" class="nav-link">
-                    <span class="nav-icon">⤓</span> Download Report (PDF)
+                    <span class="nav-icon">⤓</span> DOWNLOAD REPORT (PDF)
                 </a>
             </nav>
             <div class="footer-sidebar">
                 <a href="/reset" class="btn-reset">
-                    <span class="reset-icon">⟳</span> Reset Workspace
+                    <span class="reset-icon">⟳</span> Inisialisasi Ulang Sesi
                 </a>
-                <p class="copyright">&copy; ForeTech</p>
             </div>
         </aside>
 
+        <!-- MAIN CONTENT -->
         <main class="main-content">
-
-            {# ── FLASH MESSAGES (error & success) ─────────────── #}
+            
             {% with messages = get_flashed_messages(with_categories=true) %}
               {% if messages %}
                 <div class="flash-container">
                   {% for category, message in messages %}
                     <div class="flash-msg flash-{{ category }}">
-                      <span class="flash-icon">
-                        {% if category == 'error' %}⚠{% else %}✓{% endif %}
-                      </span>
                       <span class="flash-text">{{ message }}</span>
                       <button class="flash-close" onclick="this.parentElement.remove()">×</button>
                     </div>
@@ -53,138 +50,155 @@
             {% endwith %}
 
             {% if active_tab == 'dashboard' %}
-                <div class="header">
-                    <h2>PROCUREMENT CONTROL DASHBOARD</h2>
-                    <hr>
-                </div>
-
+                
                 {% if prediction_text is defined %}
+                    
+                    <div class="header">
+                        <h2>DASHBOARD PROYEKSI ASET</h2>
+                        <hr>
+                    </div>
+
                     <div class="dashboard-grid">
                         <div class="col-left">
                             <div class="box info-box">
-                                <h4>Next Month's Procurement Allocation</h4>
+                                <h4>Estimasi Alokasi Pengadaan</h4>
                                 <div class="prediction-number">
-                                    {{ prediction_text }}<span class="unit">UNITS</span>
+                                    {{ prediction_text }}<span class="unit">UNIT</span>
                                 </div>
-                                <p class="info-desc">AI-based estimation (XGBoost) to ensure asset availability and zero deficit.</p>
+                                <p class="info-desc">Estimasi probabilistik algoritmik untuk mencegah defisit inventaris operasional.</p>
                             </div>
                             <div class="box diagnostic-box">
                                 {% if importance_plot_url %}
-                                    <img src="data:image/png;base64,{{ importance_plot_url }}" alt="Feature Importance" class="graph-img">
+                                    <img src="data:image/png;base64,{{ importance_plot_url }}" alt="Faktor Penentu" class="graph-img">
                                 {% endif %}
                             </div>
                         </div>
                         <div class="col-right">
                             <div class="box chart-box">
                                 {% if plot_url %}
-                                    <img src="data:image/png;base64,{{ plot_url }}" alt="Trend Chart" class="graph-img">
+                                    <img src="data:image/png;base64,{{ plot_url }}" alt="Grafik Tren" class="graph-img">
                                 {% endif %}
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- REVISI: DISCLAIMER DIPINDAHKAN KE BAWAH (FOOTNOTE) -->
+                    <div class="prominent-disclaimer">
+                        <div class="disclaimer-icon">⚠</div>
+                        <div>
+                            <p class="disclaimer-title">Catatan Kepatuhan Sistem (Human-in-the-Loop)</p>
+                            <p class="disclaimer-body">
+                                Angka proyeksi di atas merupakan estimasi probabilistik berbasis kecerdasan buatan. Keputusan final pengadaan aset dan realisasi anggaran tetap menjadi wewenang penuh pihak Manajemen berdasarkan kondisi operasional terkini.
+                            </p>
                         </div>
                     </div>
 
                 {% else %}
                     <div class="welcome-container">
                         <div class="welcome-header">
-                            <h2>Initialize Analytics Workspace</h2>
-                            <p>Upload operational data to activate the asset prediction engine.</p>
+                            <h2>Sistem Analitik Pengadaan ForeTech</h2>
+                            <p>Unggah dataset historis pengadaan Anda untuk menghasilkan proyeksi kebutuhan aset bulan depan.</p>
                         </div>
                         <div class="steps-wrapper">
                             <div class="step-card">
-                                <div class="step-number">1</div>
-                                <h4>Standard Format (Required)</h4>
-                                <p>The system requires a strict validation protocol. Download and use this official Excel template so your data can be processed.</p>
-                                <div style="margin-top: 25px;">
-                                    <a href="/download_template" class="btn-download-highlight">📥 Download Template (.xlsx)</a>
-                                </div>
+                                <h4>1. Format Dataset Standar</h4>
+                                <p>Gunakan format Excel standar sistem agar dataset dapat divalidasi dan diproses secara akurat.</p>
+                                <a href="/download_template" class="btn-download-highlight">📥 Unduh Format Standar</a>
                             </div>
                             <div class="step-card">
-                                <div class="step-number">2</div>
-                                <h4>Model Generator</h4>
-                                <p>Navigate to <b>Model Generator</b> and upload your Excel file. The system will automatically execute data cleansing and AI training.</p>
+                                <h4>2. Pelatihan Model AI</h4>
+                                <p>Unggah dokumen pada modul Pelatihan Mesin AI untuk memulai proses ekstraksi pola algoritma.</p>
                             </div>
                             <div class="step-card">
-                                <div class="step-number">3</div>
-                                <h4>Review Dashboard</h4>
-                                <p>Once validated, the Dashboard will instantly display the highly accurate procurement quantity recommendation for the next month.</p>
+                                <h4>3. Evaluasi Proyeksi</h4>
+                                <p>Sistem akan menganalisis tren dan menyajikan rekomendasi alokasi pengadaan aset secara presisi.</p>
                             </div>
                         </div>
-                        <div class="action-center">
-                            <a href="/model" class="btn-start">PROCEED TO MODEL GENERATOR &rarr;</a>
+                        <div style="text-align:center;">
+                            <a href="/model" class="btn-start">INISIALISASI PELATIHAN AI →</a>
                         </div>
                     </div>
                 {% endif %}
 
             {% elif active_tab == 'model' %}
+                
                 <div class="header">
-                    <h2>MODEL GENERATOR PIPELINE</h2>
+                    <h2>MODUL PELATIHAN ALGORITMA (XGBOOST)</h2>
                     <hr>
                 </div>
 
                 <div class="generator-wrapper">
                     <div class="tab-header">
-                        <button class="tab-button {{ 'active' if not show_eval else '' }}" onclick="switchTab('import')">1. IMPORT DATASET</button>
-                        <button class="tab-button {{ 'active' if show_eval else '' }}" onclick="switchTab('eval')" {{ 'disabled' if not show_eval else '' }}>2. EVALUATION RESULTS</button>
+                        <button class="tab-button {{ 'active' if not show_eval else '' }}" onclick="switchTab('import')">1. UNGGAH DATASET HISTORIS</button>
+                        <button class="tab-button {{ 'active' if show_eval else '' }}" onclick="switchTab('eval')" {{ 'disabled' if not show_eval else '' }}>2. HASIL VALIDASI MODEL</button>
                     </div>
 
                     <div class="tab-content-area">
-                        <div id="tab-import" class="tab-content" style="display: {{ 'none' if show_eval else 'flex' }};">
-                            <div class="content-center">
-                                <p class="instruction">Select a dataset file (<b>.xlsx</b> format). Please ensure you are using the downloaded <i>Template</i> to prevent validation errors.</p>
-                                <form action="/train" method="post" enctype="multipart/form-data" class="upload-form" onsubmit="showLoadingScreen()">
-                                    <input type="file" name="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" required class="file-input">
-                                    <button type="submit" class="btn-primary-action">EXECUTE AI PIPELINE</button>
-                                </form>
-                            </div>
+                        <div id="tab-import" style="display: {{ 'none' if show_eval else 'block' }}; text-align:center;">
+                            <p style="margin-bottom:20px;">Pilih dokumen dataset historis pengadaan aset (.xlsx / .csv) untuk inisiasi pelatihan algoritma.</p>
+                            <form action="/train" method="post" enctype="multipart/form-data" class="upload-form" onsubmit="showLoadingScreen()">
+                                <input type="file" name="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" required class="file-input">
+                                <button type="submit" class="btn-primary-action">EKSEKUSI PELATIHAN SISTEM</button>
+                            </form>
                         </div>
 
-                        <div id="tab-eval" class="tab-content" style="display: {{ 'flex' if show_eval else 'none' }};">
+                        <div id="tab-eval" style="display: {{ 'block' if show_eval else 'none' }};">
                             {% if show_eval %}
-                                <div class="content-center">
-                                    <p class="instruction">Regression model efficacy report based on the uploaded Testing Set.</p>
-                                    <table class="eval-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Measurement Metric</th>
-                                                <th>Evaluation Score</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>Mean Absolute Error (MAE)</td>
-                                                <td class="score-text">{{ eval_metrics.mae }} <span class="score-unit">units</span></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Root Mean Squared Error (RMSE)</td>
-                                                <td class="score-text">{{ eval_metrics.rmse }} <span class="score-unit">units</span></td>
-                                            </tr>
-                                            <tr class="row-highlight">
-                                                <td><strong>R-Squared (Model Accuracy)</strong></td>
-                                                <td class="score-text highlight">
-                                                    {{ eval_metrics.r2 }}
-                                                    <span class="score-badge">Strong</span>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                    <div class="action-area">
-                                        <a href="/" class="btn-primary-action" style="text-decoration:none; display:inline-block;">VIEW PROCUREMENT RECOMMENDATION</a>
+                                <p style="text-align:center; font-weight:700; margin-bottom:20px; color:#1e3a8a;">
+                                    Proses pelatihan dan validasi algoritma telah selesai. Berikut adalah ringkasan metrik kinerja model prediktif:
+                                </p>
+                                
+                                <div class="eval-grid">
+                                    <div class="eval-card">
+                                        <div class="eval-card-top">
+                                            <span class="metric-title">Rata-Rata Selisih Unit</span>
+                                            <span class="metric-desc">Estimasi deviasi antara proyeksi algoritma dengan realisasi aktual di lapangan.</span>
+                                            <span class="metric-tech">*Metrik Teknis: MAE</span>
+                                        </div>
+                                        <div class="eval-card-bottom">
+                                            <div class="score-text">± {{ eval_metrics.mae }} <span class="score-unit">unit</span></div>
+                                        </div>
                                     </div>
+                                    <div class="eval-card">
+                                        <div class="eval-card-top">
+                                            <span class="metric-title">Batas Toleransi Deviasi</span>
+                                            <span class="metric-desc">Ambang batas kesalahan maksimum model apabila terjadi anomali permintaan.</span>
+                                            <span class="metric-tech">*Metrik Teknis: RMSE</span>
+                                        </div>
+                                        <div class="eval-card-bottom">
+                                            <div class="score-text">± {{ eval_metrics.rmse }} <span class="score-unit">unit</span></div>
+                                        </div>
+                                    </div>
+                                    <div class="eval-card highlight-card">
+                                        <div class="eval-card-top">
+                                            <span class="metric-title">Daya Tangkap Pola</span>
+                                            <span class="metric-desc">Tingkat keandalan algoritma dalam memetakan siklus fluktuasi logistik operasional.</span>
+                                            <span class="metric-tech">*Metrik Teknis: R-Squared (R²)</span>
+                                        </div>
+                                        <div class="eval-card-bottom">
+                                            <div class="score-text highlight">
+                                                {{ eval_metrics.r2 }}
+                                                <span class="score-badge">Sangat Andal</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="text-align:center;">
+                                    <a href="/" class="btn-primary-action" style="text-decoration:none; display:inline-block; max-width:500px;">TINJAU PROYEKSI PENGADAAN BERIKUTNYA</a>
                                 </div>
                             {% endif %}
                         </div>
                     </div>
                 </div>
-            {% endif %}
 
+            {% endif %}
         </main>
     </div>
 
+    <!-- LOADING SCREEN -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="spinner"></div>
-        <div class="loading-text" id="loadingText">
-            > Receiving Excel file...<br>
-        </div>
+        <div class="loading-text" id="loadingText">> Menginisialisasi dataset operasi...<br></div>
     </div>
 
     <script>
@@ -194,10 +208,10 @@
             var buttons = document.getElementsByClassName('tab-button');
             for (var i = 0; i < buttons.length; i++) buttons[i].classList.remove('active');
             if (tabName === 'import') {
-                document.getElementById('tab-import').style.display = 'flex';
+                document.getElementById('tab-import').style.display = 'block';
                 buttons[0].classList.add('active');
             } else if (tabName === 'eval') {
-                document.getElementById('tab-eval').style.display = 'flex';
+                document.getElementById('tab-eval').style.display = 'block';
                 buttons[1].classList.add('active');
             }
         }
@@ -205,21 +219,18 @@
         function showLoadingScreen() {
             document.getElementById('loadingOverlay').style.display = 'flex';
             var term = document.getElementById('loadingText');
-            setTimeout(() => { term.innerHTML += '> Validating column architecture...<br>'; }, 600);
-            setTimeout(() => { term.innerHTML += '> Imputing missing values...<br>'; }, 1200);
-            setTimeout(() => { term.innerHTML += '> Engineering lag features...<br>'; }, 1800);
-            setTimeout(() => { term.innerHTML += '> Training XGBoost Regressor...<br>'; }, 2400);
-            setTimeout(() => { term.innerHTML += '> Matrix calculation complete. Redirecting...'; }, 3000);
+            setTimeout(() => { term.innerHTML += '> Memvalidasi struktur dimensi matriks...<br>'; }, 800);
+            setTimeout(() => { term.innerHTML += '> Mengaktivasi protokol imputation...<br>'; }, 1600);
+            setTimeout(() => { term.innerHTML += '> Mengeksekusi pelatihan XGBoost Regressor...<br>'; }, 2400);
         }
 
-        // Auto-dismiss flash messages after 6 seconds
         setTimeout(() => {
             document.querySelectorAll('.flash-msg').forEach(el => {
                 el.style.transition = 'opacity 0.5s';
                 el.style.opacity = '0';
                 setTimeout(() => el.remove(), 500);
             });
-        }, 6000);
+        }, 6500);
     </script>
 </body>
 </html>
